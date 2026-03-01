@@ -1,0 +1,15 @@
+# Entorno virtual
+venv/
+ENV/
+env/
+
+# Archivos de caché de Python
+**/__pycache__/
+*.py[cod]
+
+# Variables de entorno (URI de Mongo)
+.env
+
+# Archivos de sistema (Windows/Mac)
+Thumbs.db
+.DS_Store

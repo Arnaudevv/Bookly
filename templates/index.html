@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookly – Tu biblioteca digital organizada por categorías</title>
+    <link rel="icon" type="image/png" href="/static/img/iconoLibro.png">
+    <meta name="description" content="Biblioteca digital para guardar, organizar y consultar títulos de libros.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <!-- MODAL — Papelera de libros eliminados -->
+    <div class="overlay" id="overlayPapelera" role="dialog" aria-modal="true" aria-label="Libros eliminados">
+        <div class="modal">
+            <header class="modal__header">
+                <h2 class="modal__titulo">Papelera</h2>
+                <button class="modal__cerrar" id="btnCerrarPapelera" aria-label="Cerrar papelera">&#x2715;</button>
+            </header>
+
+            <div id="papeleraContenido" class="papelera__contenido">
+                <!-- JS -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL — Añadir nuevo libro -->
+    <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-label="Añadir nuevo libro">
+        <div class="modal">
+            <header class="modal__header">
+                <h2 class="modal__titulo">Nuevo libro</h2>
+                <button class="modal__cerrar" id="btnCerrarModal" aria-label="Cerrar formulario">&#x2715;</button>
+            </header>
+
+            <form action="/afegir_llibre" method="POST" class="modal__form">
+                <input type="hidden" id="categoriaInput" name="categoria" value="">
+
+                <div class="campo">
+                    <label class="campo__label" for="mTitulo">Título</label>
+                    <input id="mTitulo" type="text" name="titulo" class="campo__input" placeholder="Título del libro" required>
+                </div>
+
+                <div class="campo">
+                    <label class="campo__label" for="mAutor">Autor</label>
+                    <input id="mAutor" type="text" name="autor" class="campo__input" placeholder="Nombre del autor" required>
+                </div>
+
+                <div class="campo-fila">
+                    <div class="campo">
+                        <label class="campo__label" for="mFecha">Publicación</label>
+                        <input id="mFecha" type="date" name="fecha" class="campo__input" required>
+                    </div>
+                    <div class="campo">
+                        <label class="campo__label" for="mPaginas">Páginas</label>
+                        <input id="mPaginas" type="number" name="paginas" class="campo__input" min="1" placeholder="—">
+                    </div>
+                </div>
+
+                <div class="campo">
+                    <label class="campo__label" for="mIdioma">Idioma</label>
+                    <select id="mIdioma" name="idioma" class="campo__input campo__select">
+                        <option value="Español">Español</option>
+                        <option value="Catalán">Catalán</option>
+                        <option value="Inglés">Inglés</option>
+                        <option value="Francés">Francés</option>
+                        <option value="Alemán">Alemán</option>
+                    </select>
+                </div>
+
+                <div class="modal__acciones">
+                    <button type="button" class="btn btn--ghost" id="btnCancelar">Cancelar</button>
+                    <button type="submit" class="btn btn--primary">Guardar libro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- APLICACIÓN -->
+    <div class="pagina">
+
+        <header class="cabecera">
+            <h1 class="cabecera__titulo">BOOKLY</h1>
+            <p class="cabecera__subtitulo">Tu biblioteca personal</p>
+            <button id="btnPapelera" class="btn-papelera" aria-label="Abrir papelera de libros eliminados" title="Papelera">
+                <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+                <span class="btn-papelera__contador" id="contadorPapelera">0</span>
+            </button>
+        </header>
+
+        <main class="biblioteca">
+            <div class="categorias-grid">
+                {% for columna in categorias | batch(6) %}
+                <div class="categorias-col">
+                    {% for cat in columna %}
+                    {# ── Categoría: {{ cat.nombre }} ── #}
+                    <div class="categoria">
+                        <button class="categoria__cabecera" aria-expanded="false">
+                            <img src="/static/img/{{ cat.icono }}" alt="" class="categoria__icono">
+                            <span class="categoria__nombre">{{ cat.nombre }}</span>
+                            <span class="categoria__contador">{{ libros_por_categoria[cat.id] | length }}</span>
+                            <svg class="categoria__flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="categoria__panel">
+                            <div class="categoria__interior">
+                                <button type="button" class="btn-aniadir" data-categoria="{{ cat.id }}">+ Añadir libro</button>
+                                <div class="libros-lista">
+                                    {% for libro in libros_por_categoria[cat.id] %}
+                                    <div class="libro" data-libro-id="{{ libro._id }}" data-categoria="{{ cat.id }}">
+                                        <button type="button" class="libro__cabecera" aria-expanded="false">
+                                            <img src="/static/img/iconoLibro.png" alt="" class="libro__icono">
+                                            <span class="libro__titulo-texto">{{ libro.titulo }}</span>
+                                            <svg class="libro__flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                        </button>
+                                        <div class="libro__panel">
+                                            <form action="/editar_llibre" method="POST" class="libro__form">
+                                                <input type="hidden" name="libro_id" value="{{ libro._id }}">
+                                                <input type="hidden" name="categoria" value="{{ cat.id }}">
+                                                <div class="campo campo--inline">
+                                                    <label class="campo__label">Título</label>
+                                                    <input type="text" name="titulo" class="campo__input" value="{{ libro.titulo }}">
+                                                </div>
+                                                <div class="campo campo--inline">
+                                                    <label class="campo__label">Autor</label>
+                                                    <input type="text" name="autor" class="campo__input" value="{{ libro.autor }}">
+                                                </div>
+                                                <div class="campo-fila">
+                                                    <div class="campo campo--inline">
+                                                        <label class="campo__label">Publicación</label>
+                                                        <input type="date" name="fecha" class="campo__input" value="{{ libro.fecha }}">
+                                                    </div>
+                                                    <div class="campo campo--inline">
+                                                        <label class="campo__label">Páginas</label>
+                                                        <input type="number" name="paginas" class="campo__input" min="1" value="{{ libro.paginas }}">
+                                                    </div>
+                                                </div>
+                                                <div class="campo campo--inline">
+                                                    <label class="campo__label">Idioma</label>
+                                                    <select name="idioma" class="campo__input campo__select">
+                                                        <option value="Español" {% if libro.idioma == 'Español' %}selected{% endif %}>Español</option>
+                                                        <option value="Catalán" {% if libro.idioma == 'Catalán' %}selected{% endif %}>Catalán</option>
+                                                        <option value="Inglés"  {% if libro.idioma == 'Inglés'  %}selected{% endif %}>Inglés</option>
+                                                        <option value="Francés" {% if libro.idioma == 'Francés' %}selected{% endif %}>Francés</option>
+                                                        <option value="Alemán"  {% if libro.idioma == 'Alemán'  %}selected{% endif %}>Alemán</option>
+                                                    </select>
+                                                </div>
+                                                <div class="libro__acciones">
+                                                    <button type="submit" class="btn btn--primary btn--sm">Guardar</button>
+                                                    <button type="submit" formaction="/eliminar_llibre" class="btn btn--danger btn--sm">Eliminar</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+
+                                    {% if libros_por_categoria[cat.id] | length == 0 %}
+                                    <p class="lista-vacia">Sin libros todavía</p>
+                                    {% endif %}
+
+                                </div>{# /.libros-lista #}
+                            </div>{# /.categoria__interior #}
+                        </div>{# /.categoria__panel #}
+                    </div>{# /.categoria #}
+                    {% endfor %}{# columna #}
+
+                </div>{# /.categorias-col #}
+                {% endfor %}{# columnas #}
+
+            </div>
+        </main>
+
+    </div>
+
+    <script src="/static/biblioteca.js"></script>
+</body>
+</html>
