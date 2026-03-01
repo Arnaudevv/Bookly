@@ -1,10 +1,8 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for
 from pymongo import MongoClient
-from dotenv import load_dotenv
 from datetime import datetime
 
-load_dotenv()
 app = Flask(__name__)
 
 MONGO_URI = "mongodb+srv://bibliotecaDB:ToniArnau@biblioteca.dusanse.mongodb.net/?appName=Biblioteca"
